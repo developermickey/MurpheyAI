@@ -28,7 +28,20 @@ MurpheyAI/
 
 ## 🚀 Quick Start
 
-### Backend Setup
+### ⚡ One-Click Setup (Windows - Recommended)
+
+**Easiest way to get started:**
+
+1. **Double-click `start.bat`** in the project root
+2. Wait for setup (~5-10 min first time)
+3. Open http://localhost:3000
+4. Login: `admin@test.com` / `admin123`
+
+📖 **See [LOCAL_SETUP.md](./LOCAL_SETUP.md) for detailed instructions**
+
+### Manual Setup
+
+#### Backend Setup
 
 ```bash
 cd backend
@@ -38,12 +51,19 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-### Frontend Setup
+#### Frontend Setup
 
 ```bash
 cd frontend
 npm install
 npm run dev
+```
+
+#### Start Databases
+
+```bash
+cd deployment
+docker-compose up -d postgres mongodb redis
 ```
 
 ## 📚 Documentation

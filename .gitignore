@@ -7,9 +7,6 @@ __pycache__/
 venv/
 env/
 ENV/
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
 *.egg-info/
 dist/
 build/
@@ -18,55 +15,38 @@ build/
 node_modules/
 .next/
 out/
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# IDEs
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Environment
-.env
-.env.local
-.env.production
+# OS
+.DS_Store
+Thumbs.db
 
 # Database
 *.db
 *.sqlite
 
-# Models & Data
-models/
-*.pt
-*.pth
-*.ckpt
-*.safetensors
-data/raw/
-data/processed/
-
 # Logs
-logs/
 *.log
+logs/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Docker
-.dockerignore
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Weights & Biases
-wandb/
+# Uploads
+uploads/
+models/
 
 # Temporary
-tmp/
-temp/
 *.tmp
-
+create_admin.py
