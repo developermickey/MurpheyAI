@@ -1,0 +1,29 @@
+# Training Configuration
+
+# Model
+model_size: "small"  # small, medium, large
+
+# Data
+data_path: "./data/processed"
+tokenizer_path: "./tokenizer/tokenizer.json"
+seq_len: 2048
+
+# Training
+batch_size: 4
+num_epochs: 1
+learning_rate: 6e-4
+warmup_steps: 2000
+gradient_clip: 1.0
+
+# Checkpointing
+checkpoint_dir: "./checkpoints"
+save_interval: 1  # Save every N epochs
+
+# Logging
+log_interval: 100
+use_wandb: false
+wandb_project: "murpheyai-training"
+
+# Mixed Precision
+use_fp16: true
+
