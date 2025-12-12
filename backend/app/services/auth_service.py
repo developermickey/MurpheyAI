@@ -38,8 +38,12 @@ class AuthService:
     
     @staticmethod
     def authenticate_user(db: Session, username: str, password: str) -> User:
-        """Authenticate a user."""
-        user = db.query(User).filter(User.username == username).first()
+        """Authenticate a user by username OR email."""
+        user = (
+            db.query(User)
+            .filter((User.username == username) | (User.email == username))
+            .first()
+        )
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

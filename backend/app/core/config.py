@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     PINECONE_INDEX_NAME: str = "murpheyai-embeddings"
     
     # Model Configuration
-    MODEL_PATH: str = "./models"
-    MODEL_NAME: str = "murpheyai-7b"
+    MODEL_PATH: str = ""  # Empty means use Hugging Face model directly, or "./models" for custom models
+    MODEL_NAME: str = "gpt2"  # Model name: "gpt2" (Hugging Face) or custom model name from ./models/
     MAX_TOKENS: int = 2048
     TEMPERATURE: float = 0.7
     TOP_P: float = 0.9

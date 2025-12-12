@@ -1,19 +1,21 @@
 """
 Main training script for the language model.
 """
+import logging
+from pathlib import Path
+
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from transformers import get_linear_schedule_with_warmup
 from accelerate import Accelerator
-import wandb
-from pathlib import Path
-import yaml
-import logging
+from tokenizers import Tokenizer
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+from transformers import get_linear_schedule_with_warmup
+import wandb
+import yaml
 
-from training.models.transformer_model import create_model, MODEL_CONFIGS
 from training.data.dataset import TextDataset
+from training.models.transformer_model import MODEL_CONFIGS, create_model
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,10 +31,15 @@ class Trainer:
         self.accelerator = Accelerator()
         self.device = self.accelerator.device
         
+        # Tokenizer / vocab
+        tokenizer_path = self.config.get("tokenizer_path", "./tokenizer/tokenizer.json")
+        tokenizer = Tokenizer.from_file(tokenizer_path)
+        vocab_size = tokenizer.get_vocab_size()
+
         # Initialize model
         model_size = self.config.get("model_size", "small")
         model_config = MODEL_CONFIGS[model_size]
-        self.model = create_model(model_config)
+        self.model = create_model(model_config, vocab_size_override=vocab_size)
         
         # Optimizer
         self.optimizer = torch.optim.AdamW(
@@ -45,6 +52,7 @@ class Trainer:
         # Dataset
         dataset = TextDataset(
             data_path=self.config["data_path"],
+            tokenizer_path=tokenizer_path,
             seq_len=self.config.get("seq_len", 2048),
         )
         
