@@ -4,8 +4,13 @@ from app.core.config import settings
 import logging
 import asyncio
 from pathlib import Path
+import signal
+import threading
 
 logger = logging.getLogger(__name__)
+
+# Timeout for model operations (in seconds)
+MODEL_OPERATION_TIMEOUT = 120
 
 
 class ModelService:
@@ -49,6 +54,10 @@ class ModelService:
 
     def _load_model(self, model_name: str):
         """Load a model and tokenizer from Hugging Face or custom checkpoints."""
+        # Resolve 'small' alias to the configured MODEL_NAME
+        if model_name == "small":
+            model_name = getattr(settings, "MODEL_NAME", "gpt2")
+
         try:
             # Prefer HF if available
             try:
@@ -173,35 +182,58 @@ class ModelService:
             return
 
         # Tokenize with attention mask
-        encoded = tokenizer(prompt, return_tensors="pt",
-                            padding=True, truncation=True, max_length=512)
-        input_ids = encoded["input_ids"].to(self.device)
-        attention_mask = encoded.get("attention_mask", None)
-        if attention_mask is not None:
-            attention_mask = attention_mask.to(self.device)
+        try:
+            encoded = tokenizer(prompt, return_tensors="pt",
+                                padding=True, truncation=True, max_length=512)
+            input_ids = encoded["input_ids"].to(self.device)
+            attention_mask = encoded.get("attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(self.device)
 
-        # Generate output
-        output_ids = model.generate(
-            input_ids,
-            attention_mask=attention_mask,
-            # Limit new tokens for faster generation
-            max_new_tokens=min(max_tokens, 512),
-            do_sample=True,
-            temperature=temperature,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-        )
-        # Decode only the newly generated tokens
-        input_length = input_ids.shape[-1]
-        generated_ids = output_ids[0][input_length:]
-        output_text = tokenizer.decode(
-            generated_ids, skip_special_tokens=True).strip()
-        if stream:
-            for word in output_text.split():
-                yield word + " "
-                await asyncio.sleep(0.03)
-        else:
-            yield output_text
+            # Generate output with error handling
+            try:
+                output_ids = model.generate(
+                    input_ids,
+                    attention_mask=attention_mask,
+                    # Limit new tokens for faster generation
+                    max_new_tokens=min(max_tokens, 512),
+                    do_sample=True,
+                    temperature=temperature,
+                    pad_token_id=tokenizer.eos_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                )
+            except RuntimeError as e:
+                logger.error(f"Runtime error during generation: {e}")
+                # Fallback to fallback response if generation fails
+                fallback_response = self._generate_fallback_response(prompt)
+                if stream:
+                    for word in fallback_response.split():
+                        yield word + " "
+                        await asyncio.sleep(0.05)
+                else:
+                    yield fallback_response
+                return
+
+            # Decode only the newly generated tokens
+            input_length = input_ids.shape[-1]
+            generated_ids = output_ids[0][input_length:]
+            output_text = tokenizer.decode(
+                generated_ids, skip_special_tokens=True).strip()
+            if stream:
+                for word in output_text.split():
+                    yield word + " "
+                    await asyncio.sleep(0.03)
+            else:
+                yield output_text
+        except Exception as e:
+            logger.error(f"Unexpected error during generation: {e}")
+            fallback_response = self._generate_fallback_response(prompt)
+            if stream:
+                for word in fallback_response.split():
+                    yield word + " "
+                    await asyncio.sleep(0.05)
+            else:
+                yield fallback_response
 
     def count_tokens(self, text: str, model_name: str = "small") -> int:
         """
@@ -209,6 +241,10 @@ class ModelService:
         (e.g., models not installed in the environment), fall back to
         a simple whitespace count to avoid runtime failures.
         """
+        # Resolve 'small' alias to the configured MODEL_NAME
+        if model_name == "small":
+            model_name = getattr(settings, "MODEL_NAME", "gpt2")
+
         tokenizer = self.tokenizers.get(model_name)
         if tokenizer is None:
             # Try to load; if still missing, use naive fallback
